@@ -1,10 +1,33 @@
 package boggle;
 
+import java.util.HashSet;
+import java.util.Random;
 import java.util.Set;
 import java.util.TreeSet;
+import java.util.function.Supplier;
+
+import org.jgrapht.Graph;
+import org.jgrapht.generate.CompleteGraphGenerator;
+import org.jgrapht.generate.EmptyGraphGenerator;
+import org.jgrapht.graph.DefaultEdge;
+import org.jgrapht.graph.DefaultUndirectedGraph;
+import org.jgrapht.graph.DirectedMultigraph;
+import org.jgrapht.graph.Multigraph;
+import org.jgrapht.graph.SimpleGraph;
+import org.jgrapht.nio.dot.DOTExporter;
+import org.jgrapht.util.SupplierUtil;
+
 import tree.LexicographicTree;
 
 public class Boggle {
+	
+	private final int size;
+	private final LexicographicTree dict;
+	private final Character[][] grid;
+	private String letters; 
+    private static final String FREQUENCY = "aaaaabbccdddeeeeeeeffggghiiiiiiiiiijklmnooooooooppqrrrrrrsssssttttttuuuuuuvvxyyz";
+
+	
 	/*
 	 * CONSTRUCTORS
 	 */
@@ -15,7 +38,15 @@ public class Boggle {
 	 * @param dict A dictionary of allowed words
 	 */
 	public Boggle(int size, LexicographicTree dict) {
-		// TODO
+		if (size < 1) {
+            throw new IllegalArgumentException("The size of the grid must be greater than or equal to 1.");
+        }
+        
+        this.size = size;
+        this.dict = dict;
+        this.grid = new Character[size][size];
+        
+        fillGridWithRandom();
 	}
 	
 	/**
@@ -25,7 +56,10 @@ public class Boggle {
 	 * @param dict A dictionary of allowed words
 	 */
 	public Boggle(int size, String letters, LexicographicTree dict) {
-		// TODO
+		this(size, dict);
+		this.letters = letters;
+		
+		fillGridWithLetters(letters);	
 	}
 	
 	/*
@@ -37,7 +71,7 @@ public class Boggle {
 	 * @return a string of letters
 	 */
 	public String letters() {
-		return ""; // TODO
+		return this.letters;
 	}
 	
 	/**
@@ -62,14 +96,66 @@ public class Boggle {
 	 * @return a textual representation of the Boggle grid
 	 */
 	public String toString() {
-		return ""; // TODO
+
+		Graph<Character, DefaultEdge> graph = new Multigraph<>(DefaultEdge.class);
+
+		// Add vertices for each character in the 2D array
+		for (int i = 0; i < size; i++) {
+		    for (int j = 0; j < size; j++) {
+		        graph.addVertex(grid[i][j]);
+		        System.out.print(grid[i][j]);
+		    }
+		}
+
+		// Add edges between adjacent vertices
+		/*for (int i = 0; i < size; i++) {
+		    for (int j = 0; j < size; j++) {
+		        if (j < size - 1) {
+		            graph.addEdge(grid[i][j], grid[i][j+1]);
+		        }
+		        if (i < size - 1) {
+		            graph.addEdge(grid[i][j], grid[i+1][j]);
+		        }
+		       
+		    }
+		}*/
+
+		
+		return graph.toString();
+
 	}
 
 	/*
 	 * PRIVATE METHODS
 	 */
 
-	// TODO
+	private void fillGridWithRandom() {
+		Random random = new Random();
+        StringBuilder builder = new StringBuilder("");
+
+        for (int i = 0; i < grid.length; i++) {
+            for (int j = 0; j < grid[i].length; j++) {
+            	char letter = FREQUENCY.charAt(random.nextInt(FREQUENCY.length())); 
+                grid[i][j] = letter;
+                builder.append(letter);
+            }
+        }
+        
+        this.letters = builder.toString();
+	}
+	
+	private void fillGridWithLetters(String letters) {
+		Random random = new Random();
+		StringBuilder builder = new StringBuilder(letters);
+        
+        for (int i = 0; i < size; i++) {
+            for (int j = 0; j < size; j++) {
+            	int index = random.nextInt(builder.length());
+                this.grid[i][j] = builder.charAt(index);
+                builder.deleteCharAt(index);
+            }
+        }
+	}
 	
 	/*
 	 * MAIN PROGRAM

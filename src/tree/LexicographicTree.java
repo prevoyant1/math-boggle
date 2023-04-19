@@ -1,11 +1,20 @@
 package tree;
 
+import java.io.BufferedReader;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Scanner;
 
 public class LexicographicTree {
+	
+	private Node root;
+	private int size = 0;
 	
 	/*
 	 * CONSTRUCTORS
@@ -15,7 +24,7 @@ public class LexicographicTree {
 	 * Constructor : creates an empty lexicographic tree.
 	 */
 	public LexicographicTree() {
-		// TODO
+		this.root = new Node();
 	}
 	
 	/**
@@ -23,7 +32,21 @@ public class LexicographicTree {
 	 * @param filename A text file containing the words to be inserted in the tree 
 	 */
 	public LexicographicTree(String filename) {
-		// TODO
+		//1. Initialize root node
+		this();
+		
+		//2. Load the file's content
+		try (BufferedReader reader = new BufferedReader(new InputStreamReader(new FileInputStream(filename)))) {
+			String line = null;
+			
+			//3. For each no-empty lines, insert the word into the tree.
+			while ((line = reader.readLine()) != null)   {
+				insertWord(line);
+			}
+			
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
 	}
 	
 	/*
@@ -35,7 +58,7 @@ public class LexicographicTree {
 	 * @return The number of words present in the lexicographic tree
 	 */
 	public int size() {
-		return 0; // TODO
+		return this.size;
 	}
 
 	/**
@@ -43,7 +66,34 @@ public class LexicographicTree {
 	 * @param word A word
 	 */
 	public void insertWord(String word) {
-		// TODO
+		
+		Map<Character, Node> children = root.getChildren();
+        Node node;
+
+		try {
+			
+			//1. Iterate over every character in the word
+			for(int i = 0; i < word.length(); i++) {
+	            char c = word.charAt(i);
+	            
+	            //2. If the children of the current node contains the current letter, set the current node to that one, else, create a new node and add it to the tree
+	            if(children.containsKey(c)) {
+	                node = children.get(c);
+	            } else { 
+	                node = new Node(c);
+	                children.put(c, node);
+	            }
+	            children = node.getChildren();
+
+	            //3. If the current character is the last one in the word, mark the current node as a Word (final node) and increment the size of the tree
+	            if(i == word.length() - 1 && !node.isWord()) {
+	                node.setWord(true);
+	                this.size++;
+	            }
+	        }
+		} catch (IllegalArgumentException e) {
+			System.out.print("An error has occured while inserting a word into the Lexicographic Tree : " + e);
+		}    
 	}
 	
 	/**
@@ -52,7 +102,30 @@ public class LexicographicTree {
 	 * @return True if the word is present, false otherwise
 	 */
 	public boolean containsWord(String word) {
-		return true; // TODO
+		
+		Map<Character, Node> children = root.getChildren();
+        Node node = null;
+        
+        //1. Iterate over each character in the word
+        for(int i = 0; i < word.length(); i++) {
+            char c = word.charAt(i);
+            
+            //2. If the current node has the current character as child, step into it, else, step out of the loop as not all the characters are in the tree
+            if(children.containsKey(c)) {
+                node = children.get(c);
+                children = node.getChildren();
+            } else { 
+                node = null;
+                break;
+            }
+        }
+
+        //3. If the node is not null, which means that its last character was found following the order, and that the last character is marked as a Word (final node) return true, else return false.
+        if(node != null && node.isWord()) {
+            return true;
+        } else {
+            return false;
+        }
 	}
 	
 	/**
@@ -62,7 +135,26 @@ public class LexicographicTree {
 	 * @return The list of words starting with the supplied prefix
 	 */
 	public List<String> getWords(String prefix) {
-		return null; // TODO
+		List<String> wordsFound = new ArrayList<String>();
+		Map<Character, Node> children = root.getChildren();
+
+        Node node = root;
+        for(int i = 0; i < prefix.length(); i++) {
+            char c = prefix.charAt(i);
+            if(children.containsKey(c)) {
+                node = children.get(c);
+                children = node.getChildren();
+            } else { 
+                node = null;
+                break;
+            }
+        }
+
+        if(node != null) {
+            getNodeWords(node, new StringBuilder(prefix), wordsFound);
+        }
+		
+		return wordsFound;
 	}
 
 	/**
@@ -72,14 +164,43 @@ public class LexicographicTree {
 	 * @return The list of words with the given length
 	 */
 	public List<String> getWordsOfLength(int length) {
-		return null; // TODO
+		List<String> wordsFound = new ArrayList<String>();
+        getWordsOfSize(root, new StringBuilder(), wordsFound, length);
+        return wordsFound;
 	}
 
 	/*
 	 * PRIVATE METHODS
 	 */
 	
-	// TODO
+	private void getNodeWords(Node node, StringBuilder currentWord, List<String> wordsFound) {
+		if (node.isWord()) {
+            wordsFound.add(currentWord.toString());
+        }
+
+        for (Character c : node.getChildren().keySet()) {
+            Node child = node.getChildren().get(c);
+            currentWord.append(c);
+            getNodeWords(child, currentWord, wordsFound);
+            currentWord.deleteCharAt(currentWord.length() - 1);
+        }
+	}
+	
+	private void getWordsOfSize(Node node, StringBuilder currentWord, List<String> wordsFound, int size) {
+		if (currentWord.length() == size) {
+            if (node.isWord()) {
+                wordsFound.add(currentWord.toString());
+            }
+            return;
+        }
+
+        for (Character c : node.getChildren().keySet()) {
+            Node child = node.getChildren().get(c);
+            currentWord.append(c);
+            getWordsOfSize(child, currentWord, wordsFound, size);
+            currentWord.deleteCharAt(currentWord.length() - 1);
+        }
+	}
 	
 	/*
 	 * TEST FUNCTIONS
