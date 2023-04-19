@@ -6,9 +6,8 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStreamReader;
-import java.util.ArrayList;
+import java.util.LinkedList;
 import java.util.List;
-import java.util.Map;
 import java.util.Scanner;
 
 public class LexicographicTree {
@@ -66,35 +65,21 @@ public class LexicographicTree {
 	 * @param word A word
 	 */
 	public void insertWord(String word) {
+        Node node = root;
+        
+        //Retrieving the length of the word to avoid calling word.length() at each iteration of the loop
+        int length = word.length();
+        
+        for (int i = 0; i < length; i++) {
+            char letter = word.charAt(i);
+            node = node.addChildNode(letter);
+        }
 		
-		Map<Character, Node> children = root.getChildren();
-        Node node;
-
-		try {
-			
-			//1. Iterate over every character in the word
-			for(int i = 0; i < word.length(); i++) {
-	            char c = word.charAt(i);
-	            
-	            //2. If the children of the current node contains the current letter, set the current node to that one, else, create a new node and add it to the tree
-	            if(children.containsKey(c)) {
-	                node = children.get(c);
-	            } else { 
-	                node = new Node(c);
-	                children.put(c, node);
-	            }
-	            children = node.getChildren();
-
-	            //3. If the current character is the last one in the word, mark the current node as a Word (final node) and increment the size of the tree
-	            if(i == word.length() - 1 && !node.isWord()) {
-	                node.setWord(true);
-	                this.size++;
-	            }
-	        }
-		} catch (IllegalArgumentException e) {
-			System.out.print("An error has occured while inserting a word into the Lexicographic Tree : " + e);
-		}    
+        if (node.setWord(true)) {
+        	this.size++;
+        }
 	}
+
 	
 	/**
 	 * Determines if a word is present in the lexicographic tree.
@@ -103,29 +88,19 @@ public class LexicographicTree {
 	 */
 	public boolean containsWord(String word) {
 		
-		Map<Character, Node> children = root.getChildren();
-        Node node = null;
-        
-        //1. Iterate over each character in the word
-        for(int i = 0; i < word.length(); i++) {
-            char c = word.charAt(i);
-            
-            //2. If the current node has the current character as child, step into it, else, step out of the loop as not all the characters are in the tree
-            if(children.containsKey(c)) {
-                node = children.get(c);
-                children = node.getChildren();
-            } else { 
-                node = null;
-                break;
-            }
-        }
+		Node node = root;
+		int length = word.length();
 
-        //3. If the node is not null, which means that its last character was found following the order, and that the last character is marked as a Word (final node) return true, else return false.
-        if(node != null && node.isWord()) {
-            return true;
-        } else {
-            return false;
-        }
+		for (int i = 0; i < length; i++) {
+		    char letter = word.charAt(i);
+		    if (node.containsChild(letter)) {
+		        node = node.getChild(letter);
+		    } else {
+		        return false;
+		    }
+		}
+
+		return node != null && node.isWord();
 	}
 	
 	/**
@@ -135,25 +110,27 @@ public class LexicographicTree {
 	 * @return The list of words starting with the supplied prefix
 	 */
 	public List<String> getWords(String prefix) {
-		List<String> wordsFound = new ArrayList<String>();
-		Map<Character, Node> children = root.getChildren();
-
-        Node node = root;
-        for(int i = 0; i < prefix.length(); i++) {
-            char c = prefix.charAt(i);
-            if(children.containsKey(c)) {
-                node = children.get(c);
-                children = node.getChildren();
-            } else { 
-                node = null;
-                break;
-            }
-        }
-
-        if(node != null) {
-            getNodeWords(node, new StringBuilder(prefix), wordsFound);
-        }
 		
+		// LinkedList because faster for insertion and we don't need to access specified elements
+		List<String> wordsFound = new LinkedList<String>();
+
+		Node node = root;
+		int len = prefix.length();
+
+		for (int i = 0; i < len; i++) {
+		    char letter = prefix.charAt(i);
+		    if (node.containsChild(letter)) {
+		        node = node.getChild(letter);
+		    } else {
+		        node = null;
+		        break;
+		    }
+		}
+
+		if (node != null) {
+		    getNodeWords(node, new StringBuilder(prefix), wordsFound);
+		}
+
 		return wordsFound;
 	}
 
@@ -164,7 +141,7 @@ public class LexicographicTree {
 	 * @return The list of words with the given length
 	 */
 	public List<String> getWordsOfLength(int length) {
-		List<String> wordsFound = new ArrayList<String>();
+		List<String> wordsFound = new LinkedList<String>();
         getWordsOfSize(root, new StringBuilder(), wordsFound, length);
         return wordsFound;
 	}
@@ -174,32 +151,33 @@ public class LexicographicTree {
 	 */
 	
 	private void getNodeWords(Node node, StringBuilder currentWord, List<String> wordsFound) {
+	    
 		if (node.isWord()) {
-            wordsFound.add(currentWord.toString());
-        }
+		    wordsFound.add(currentWord.toString());
+		}
 
-        for (Character c : node.getChildren().keySet()) {
-            Node child = node.getChildren().get(c);
-            currentWord.append(c);
-            getNodeWords(child, currentWord, wordsFound);
-            currentWord.deleteCharAt(currentWord.length() - 1);
-        }
+		for (Node childNode : node.children) {
+		    if (childNode != null) {
+		        currentWord.append(childNode.getLetter());
+		        getNodeWords(childNode, currentWord, wordsFound);
+		        currentWord.deleteCharAt(currentWord.length() - 1);
+		    }
+		}
 	}
 	
 	private void getWordsOfSize(Node node, StringBuilder currentWord, List<String> wordsFound, int size) {
-		if (currentWord.length() == size) {
-            if (node.isWord()) {
-                wordsFound.add(currentWord.toString());
-            }
-            return;
-        }
 
-        for (Character c : node.getChildren().keySet()) {
-            Node child = node.getChildren().get(c);
-            currentWord.append(c);
-            getWordsOfSize(child, currentWord, wordsFound, size);
-            currentWord.deleteCharAt(currentWord.length() - 1);
-        }
+		if (currentWord.length() == size && node.isWord()) {
+		    wordsFound.add(currentWord.toString());
+		} else if (currentWord.length() < size) {
+		    for (Node childNode : node.children) {
+		        if (childNode != null) {
+		            currentWord.append(childNode.getLetter());
+		            getWordsOfSize(childNode, currentWord, wordsFound, size);
+		            currentWord.deleteCharAt(currentWord.length() - 1);
+		        }
+		    }
+		}
 	}
 	
 	/*
