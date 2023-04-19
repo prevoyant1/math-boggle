@@ -4,28 +4,20 @@ import java.util.HashSet;
 import java.util.Random;
 import java.util.Set;
 import java.util.TreeSet;
-import java.util.function.Supplier;
 
 import org.jgrapht.Graph;
-import org.jgrapht.generate.CompleteGraphGenerator;
-import org.jgrapht.generate.EmptyGraphGenerator;
 import org.jgrapht.graph.DefaultEdge;
-import org.jgrapht.graph.DefaultUndirectedGraph;
-import org.jgrapht.graph.DirectedMultigraph;
 import org.jgrapht.graph.Multigraph;
-import org.jgrapht.graph.SimpleGraph;
-import org.jgrapht.nio.dot.DOTExporter;
-import org.jgrapht.util.SupplierUtil;
 
 import tree.LexicographicTree;
 
 public class Boggle {
 	
+    private static final String FREQUENCY = "aaaaabbccdddeeeeeeeffggghiiiiiiiiiijklmnooooooooppqrrrrrrsssssttttttuuuuuuvvxyyz";
 	private final int size;
 	private final LexicographicTree dict;
-	private final Character[][] grid;
+	private final char[][] grid;
 	private String letters; 
-    private static final String FREQUENCY = "aaaaabbccdddeeeeeeeffggghiiiiiiiiiijklmnooooooooppqrrrrrrsssssttttttuuuuuuvvxyyz";
 
 	
 	/*
@@ -38,14 +30,18 @@ public class Boggle {
 	 * @param dict A dictionary of allowed words
 	 */
 	public Boggle(int size, LexicographicTree dict) {
-		if (size < 1) {
-            throw new IllegalArgumentException("The size of the grid must be greater than or equal to 1.");
+		
+		//1. Check args. If the grid size is less than 1, throw an error.
+		if (size < 1 || dict == null) {
+            throw new IllegalArgumentException("The dictionnary is null and/or the size of the grid is less than 1.");
         }
         
+		//2. Initialize attributes
         this.size = size;
         this.dict = dict;
-        this.grid = new Character[size][size];
+        this.grid = new char[size][size];
         
+        //3. Fill the grid with random characters
         fillGridWithRandom();
 	}
 	
@@ -56,9 +52,17 @@ public class Boggle {
 	 * @param dict A dictionary of allowed words
 	 */
 	public Boggle(int size, String letters, LexicographicTree dict) {
-		this(size, dict);
-		this.letters = letters;
+		//1. Check args. If the grid size is less than 1, throw an error.
+		if (size < 1 || dict == null || letters.length() != size*size) {
+            throw new IllegalArgumentException("The dictionnary is null, the size of the grid is less than 1 and/or not enough letters to fill the whole grid.");
+        }
+        
+		//2. Initialize attributes.
+        this.size = size;
+        this.dict = dict;
+        this.grid = new char[size][size];
 		
+        //3. Fill the grid with the given letters.
 		fillGridWithLetters(letters);	
 	}
 	
@@ -80,7 +84,10 @@ public class Boggle {
 	 * @return true if the word is present, false otherwise
 	 */
 	public boolean contains(String word) {
-		return true; // TODO
+		
+		Set<String> wordsInGrid = solve();
+				
+		return wordsInGrid.contains(word);
 	}
 
 	/**
@@ -88,9 +95,19 @@ public class Boggle {
 	 * @return the set of found words
 	 */
 	public Set<String> solve() {
-		return null; // TODO
+		
+		Set<String> foundWordSet = new HashSet<>();
+	    boolean[][] visited = new boolean[size][size];
+		
+		for (int i = 0; i < this.size; i++) {
+			for (int j = 0; j < this.size; j++) {
+				findWordsFromtIndex(i, j, visited, "", foundWordSet);
+			}
+		}
+		return foundWordSet;
 	}
 	
+
 	/**
 	 * Returns a textual representation of the Boggle grid.
 	 * @return a textual representation of the Boggle grid
@@ -102,9 +119,9 @@ public class Boggle {
 		// Add vertices for each character in the 2D array
 		for (int i = 0; i < size; i++) {
 		    for (int j = 0; j < size; j++) {
-		        graph.addVertex(grid[i][j]);
 		        System.out.print(grid[i][j]);
 		    }
+		    System.out.println();
 		}
 
 		// Add edges between adjacent vertices
@@ -144,17 +161,44 @@ public class Boggle {
         this.letters = builder.toString();
 	}
 	
+	
 	private void fillGridWithLetters(String letters) {
-		Random random = new Random();
 		StringBuilder builder = new StringBuilder(letters);
         
-        for (int i = 0; i < size; i++) {
-            for (int j = 0; j < size; j++) {
-            	int index = random.nextInt(builder.length());
-                this.grid[i][j] = builder.charAt(index);
-                builder.deleteCharAt(index);
+        for (int i = 0; i < this.size; i++) {
+            for (int j = 0; j < this.size; j++) {
+                this.grid[i][j] = builder.charAt(0);
+                builder.deleteCharAt(0);
             }
         }
+	}
+	
+	private void findWordsFromtIndex(int i, int j, boolean[][] visited, String prefix, Set<String> foundWords) {
+		
+		// Check if the current cell is out of bounds or already visited
+	    if (i < 0 || i >= size || j < 0 || j >= size || visited[i][j]) {
+	        return;
+	    }
+	    
+	    prefix += grid[i][j];
+
+	    if (dict.containsWord(prefix) && prefix.length() >= 3) {
+	        foundWords.add(prefix);
+	    }
+	    
+	 // Mark the current cell as visited and continue searching
+	    visited[i][j] = true;
+	    findWordsFromtIndex(i-1, j, visited, prefix, foundWords); // Up
+	    findWordsFromtIndex(i+1, j, visited, prefix, foundWords); // Down
+	    findWordsFromtIndex(i, j-1, visited, prefix, foundWords); // Left
+	    findWordsFromtIndex(i, j+1, visited, prefix, foundWords); // Right
+	    findWordsFromtIndex(i-1, j-1, visited, prefix, foundWords); // Up-Left
+	    findWordsFromtIndex(i-1, j+1, visited, prefix, foundWords); // Up-Right
+	    findWordsFromtIndex(i+1, j-1, visited, prefix, foundWords); // Down-Left
+	    findWordsFromtIndex(i+1, j+1, visited, prefix, foundWords); // Down-Right
+	    
+	    // Mark the current cell as unvisited to allow backtracking
+	    visited[i][j] = false;
 	}
 	
 	/*

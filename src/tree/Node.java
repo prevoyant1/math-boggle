@@ -24,11 +24,7 @@ public class Node {
      * @param character The character of the node
      */
     public Node(char character){
-    	if ((character >= 'a' && character <= 'z') || character == '-' || character == '\'') {
-            this.character = character;
-        } else {
-            throw new IllegalArgumentException("Invalid character: " + character);
-        }
+        this.character = character;
     }
     
     

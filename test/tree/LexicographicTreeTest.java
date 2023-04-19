@@ -3,6 +3,9 @@ package tree;
 import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.*;
 
+import java.util.Arrays;
+import java.util.List;
+
 import org.junit.jupiter.api.BeforeAll;
 
 /* ---------------------------------------------------------------- */
@@ -65,5 +68,4 @@ public class LexicographicTreeTest {
 		assertEquals(4, DICT.getWordsOfLength(3).size());
 		assertArrayEquals(new String[] {"aux", "bus", "but", "ete"}, DICT.getWordsOfLength(3).toArray());
 	}
-
 }
