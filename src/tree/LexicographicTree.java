@@ -2,18 +2,25 @@ package tree;
 
 import java.io.BufferedReader;
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.io.InputStreamReader;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.util.Arrays;
+import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Scanner;
+import java.util.Set;
+
 
 public class LexicographicTree {
 	
-	private Node root;
+	private static final Set<Character> ALPHABET = new HashSet<>(Arrays.asList('a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z', '-', '\''));
+	private final Node root;
 	private int size = 0;
+	
 	
 	/*
 	 * CONSTRUCTORS
@@ -34,17 +41,18 @@ public class LexicographicTree {
 		//1. Initialize root node
 		this();
 		
-		//2. Load the file's content
-		try (BufferedReader reader = new BufferedReader(new InputStreamReader(new FileInputStream(filename)))) {
+		//2. Load data from file
+		try (BufferedReader reader = Files.newBufferedReader(Paths.get(filename), StandardCharsets.UTF_8)) {
+
 			String line = null;
 			
-			//3. For each no-empty lines, insert the word into the tree.
+			//3. Iterate over each line (word) and insert the word into the tree
 			while ((line = reader.readLine()) != null)   {
 				insertWord(line);
 			}
 			
 		} catch (IOException e) {
-			e.printStackTrace();
+			System.out.printf("An error has occured while loading words from file : %s\n%s", filename, e);
 		}
 	}
 	
@@ -59,23 +67,28 @@ public class LexicographicTree {
 	public int size() {
 		return this.size;
 	}
+	
 
 	/**
 	 * Inserts a word in the lexicographic tree if not already present.
 	 * @param word A word
 	 */
 	public void insertWord(String word) {
+				
+		//1. Filter if word is invalid
+		if (word.isBlank() && !word.chars().allMatch(c -> ALPHABET.contains((char) c))) {
+			return;
+		}
+		
         Node node = root;
         
-        //Retrieving the length of the word to avoid calling word.length() at each iteration of the loop
-        int length = word.length();
-        
-        for (int i = 0; i < length; i++) {
-            char letter = word.charAt(i);
-            node = node.addChildNode(letter);
+        //2. Iterate through each character in the word and add it as a child node to the tree.
+        for (int i = 0; i < word.length(); i++) {
+            node = node.addChildNode(word.charAt(i));
         }
 		
-        if (node.setWord(true)) {
+        //3. Set the current node as the end of the word and increment the trie's size if successful.
+        if (node.setIsEndingWord()) {
         	this.size++;
         }
 	}
@@ -89,9 +102,9 @@ public class LexicographicTree {
 	public boolean containsWord(String word) {
 		
 		Node node = root;
-		int length = word.length();
-
-		for (int i = 0; i < length; i++) {
+		
+		//1. Iterate through each character in the word and traverse the tree. If a character is not found, return false.
+		for (int i = 0; i < word.length(); i++) {
 		    char letter = word.charAt(i);
 		    if (node.containsChild(letter)) {
 		        node = node.getChild(letter);
@@ -99,9 +112,11 @@ public class LexicographicTree {
 		        return false;
 		    }
 		}
-
-		return node != null && node.isWord();
+		
+		//2. If the last node found is not null and an ending node, returns true, otherwise false 
+		return node != null && node.isEndingNode();
 	}
+	
 	
 	/**
 	 * Returns an alphabetic list of all words starting with the supplied prefix.
@@ -111,13 +126,13 @@ public class LexicographicTree {
 	 */
 	public List<String> getWords(String prefix) {
 		
-		// LinkedList because faster for insertion and we don't need to access specified elements
+		//1. Create a LinkedList to store the words found, as it is faster for insertion and we don't need access
 		List<String> wordsFound = new LinkedList<String>();
-
 		Node node = root;
-		int len = prefix.length();
+		int length = prefix.length();
 
-		for (int i = 0; i < len; i++) {
+		//2. Traverse the trie for the given prefix; if the prefix is not found, set the node to null and break the loop
+		for (int i = 0; i < length; i++) {
 		    char letter = prefix.charAt(i);
 		    if (node.containsChild(letter)) {
 		        node = node.getChild(letter);
@@ -127,13 +142,16 @@ public class LexicographicTree {
 		    }
 		}
 
+		//3. If the node is not null, meaning the prefix exists in the trie, collect the words starting with the prefix
 		if (node != null) {
 		    getNodeWords(node, new StringBuilder(prefix), wordsFound);
 		}
 
+		//4. Return the list of words found starting with the prefix
 		return wordsFound;
 	}
 
+	
 	/**
 	 * Returns an alphabetic list of all words of a given length.
 	 * If 'length' is lower than or equal to zero, an empty list is returned.
@@ -141,8 +159,12 @@ public class LexicographicTree {
 	 * @return The list of words with the given length
 	 */
 	public List<String> getWordsOfLength(int length) {
+		
+		//1. Create a LinkedList to store the words found, as it is faster for insertion and we don't need access
 		List<String> wordsFound = new LinkedList<String>();
+	    //2. Traverse the trie and collect words of the specified length
         getWordsOfSize(root, new StringBuilder(), wordsFound, length);
+        //3. Return the list of words found with the specified length
         return wordsFound;
 	}
 
@@ -152,26 +174,35 @@ public class LexicographicTree {
 	
 	private void getNodeWords(Node node, StringBuilder currentWord, List<String> wordsFound) {
 	    
-		if (node.isWord()) {
+		//1. If the current node represents a complete word, add it to the wordsFound list (breakpoint of the recursive calls)
+		if (node.isEndingNode()) {
 		    wordsFound.add(currentWord.toString());
 		}
 
-		for (Node childNode : node.children) {
-		    if (childNode != null) {
-		        currentWord.append(childNode.getLetter());
-		        getNodeWords(childNode, currentWord, wordsFound);
-		        currentWord.deleteCharAt(currentWord.length() - 1);
-		    }
+		//2. Iterate through the children of the current node, if not null
+		if (node.children != null) {
+			for (Node childNode : node.children) {
+			    if (childNode != null) {
+		            //3. Append the child node's letter, traverse the tree, and remove the letter before backtracking
+			        currentWord.append(childNode.getLetter());
+			        getNodeWords(childNode, currentWord, wordsFound);
+			        currentWord.deleteCharAt(currentWord.length() - 1);
+			    }
+			}
 		}
 	}
 	
 	private void getWordsOfSize(Node node, StringBuilder currentWord, List<String> wordsFound, int size) {
-
-		if (currentWord.length() == size && node.isWord()) {
+		
+		//1. If the current word has reached the desired size and the node represents a complete word, add it to the wordsFound list (breakpoint of the recursive calls)
+		if (currentWord.length() == size && node.isEndingNode()) {
 		    wordsFound.add(currentWord.toString());
-		} else if (currentWord.length() < size) {
+		    
+		//2. If the current word length is less than the desired size and the node has children, continue
+		} else if (currentWord.length() < size && node.children != null) {
 		    for (Node childNode : node.children) {
 		        if (childNode != null) {
+		            //3. Append the child node's letter, traverse the trie, and remove the letter before backtracking
 		            currentWord.append(childNode.getLetter());
 		            getWordsOfSize(childNode, currentWord, wordsFound, size);
 		            currentWord.deleteCharAt(currentWord.length() - 1);

@@ -171,6 +171,7 @@ public class Boggle {
                 builder.deleteCharAt(0);
             }
         }
+        this.letters = builder.toString();
 	}
 	
 	private void findWordsFromtIndex(int i, int j, boolean[][] visited, String prefix, Set<String> foundWords) {
@@ -186,7 +187,7 @@ public class Boggle {
 	        foundWords.add(prefix);
 	    }
 	    
-	 // Mark the current cell as visited and continue searching
+	    // Mark the current cell as visited and continue searching
 	    visited[i][j] = true;
 	    findWordsFromtIndex(i-1, j, visited, prefix, foundWords); // Up
 	    findWordsFromtIndex(i+1, j, visited, prefix, foundWords); // Down

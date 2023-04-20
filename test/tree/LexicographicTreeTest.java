@@ -14,8 +14,7 @@ import org.junit.jupiter.api.BeforeAll;
  * Constructor
  */
 public class LexicographicTreeTest {
-	private static final String[] WORDS = new String[] {"aide", "as", "au", "aux",
-			"bu", "bus", "but", "et", "ete"};
+	private static final String[] WORDS = new String[] {"aide", "as", "au", "aux", "bu", "bus", "but", "et", "ete"};
 	private static final LexicographicTree DICT = new LexicographicTree();
 
 	@BeforeAll
@@ -68,4 +67,9 @@ public class LexicographicTreeTest {
 		assertEquals(4, DICT.getWordsOfLength(3).size());
 		assertArrayEquals(new String[] {"aux", "bus", "but", "ete"}, DICT.getWordsOfLength(3).toArray());
 	}
+	
+	/************ CUSTOM TESTS ************/
+	
+	
+
 }
